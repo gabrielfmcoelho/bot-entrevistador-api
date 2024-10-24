@@ -25,7 +25,11 @@ async def websocket_endpoint(websocket: WebSocket):
         # Verifica se o número do usuário já existe no "banco de dados"
         if user_number not in conversation_db:
             conversation_db[user_number] = {"nome": "Novo Usuário", "tipo_entrevista": "não definido", "flow": "inicio", "history": []}
-            welcome_message = f"Olá! Parece que é sua primeira vez aqui. Vamos começar sua entrevista para uma vaga?"
+
+            # Chama a API externa ao iniciar a entrevista
+            api_data = call_external_api(user_number)
+
+            welcome_message = f"Olá! Parece que é sua primeira vez aqui. {api_data['message']} Vamos começar sua entrevista para uma vaga?"
             await websocket.send_text(welcome_message)
         else:
             flow = conversation_db[user_number]["flow"]
@@ -52,7 +56,6 @@ def process_message(data):
     except json.JSONDecodeError:
         return ""  # Caso a conversão falhe, retorna uma string vazia
 
-
 def get_user_number_from_message(data):
     """
     Extrai o número do usuário da mensagem recebida da API A.
@@ -64,6 +67,20 @@ def get_user_number_from_message(data):
     except json.JSONDecodeError:
         return ""  # Caso a conversão falhe, retorna uma string vazia
 
+# Função para fazer a chamada à API externa
+def call_external_api(user_number):
+    """
+    Faz uma requisição GET para a API externa e retorna os dados.
+    """
+    api_url = f"http://195.200.0.244:3001/api/user/{user_number}"  # Substitua o endpoint conforme necessário
+    try:
+        response = requests.get(api_url)
+        if response.status_code == 200:
+            return response.json()  # Retorna os dados da API externa como JSON
+        else:
+            return {"message": "Não conseguimos obter dados no momento."}
+    except Exception as e:
+        return {"message": f"Erro ao acessar a API externa: {str(e)}"}
 
 def manage_chatbot_flow(flow, user_message, user_number):
     if flow == "inicio":
@@ -98,7 +115,7 @@ def ask_interview_question(flow, user_message, user_number):
         return coder_intern_questions(user_message, user_number)
     return "Pergunta não definida."
 
-### Engenheiro de Dados - Perguntas (12 no mínimo)
+# Perguntas para Engenheiro de Dados
 def engineering_data_questions(user_message, user_number):
     history = conversation_db[user_number]["history"]
     questions = [
@@ -120,7 +137,7 @@ def engineering_data_questions(user_message, user_number):
         return questions[len(history)]
     return "Obrigado! Essa foi a última pergunta da entrevista para Engenheiro de Dados."
 
-### Desenvolvedora Full-stack - Perguntas (12 no mínimo)
+# Perguntas para Desenvolvedora Full-stack
 def full_stack_questions(user_message, user_number):
     history = conversation_db[user_number]["history"]
     questions = [
@@ -142,7 +159,7 @@ def full_stack_questions(user_message, user_number):
         return questions[len(history)]
     return "Obrigado! Essa foi a última pergunta da entrevista para Desenvolvedora Full-stack."
 
-### Estagiário Coder - Perguntas (12 no mínimo)
+# Perguntas para Estagiário Coder
 def coder_intern_questions(user_message, user_number):
     history = conversation_db[user_number]["history"]
     questions = [
@@ -164,6 +181,7 @@ def coder_intern_questions(user_message, user_number):
         return questions[len(history)]
     return "Obrigado! Essa foi a última pergunta da entrevista para Estagiário Coder."
 
+# Função para enviar dados para a API C (ChatGPT)
 def get_chatgpt_response(user_message):
     api_url = "https://api.openai.com/v1/chat/completions"
     headers = {

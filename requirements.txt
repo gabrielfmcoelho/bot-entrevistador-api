@@ -1,0 +1,9 @@
+fastapi==0.95.1
+uvicorn==0.22.0
+requests==2.31.0
+
+
+# Explicação:
+# FastAPI: A principal biblioteca para criar a API.
+# Uvicorn: Um servidor ASGI necessário para rodar o FastAPI.
+# Requests: Biblioteca usada para fazer chamadas HTTP, como a chamada à API externa.
