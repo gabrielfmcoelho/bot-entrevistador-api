@@ -2,7 +2,11 @@ from fastapi import FastAPI, WebSocket
 import requests
 import json
 
-app = FastAPI()
+app = FastAPI(
+    title="API Gerenciadora de Entrevista",
+    description="API intermediária para gerenciar entrevistas com candidatos de forma humanizada e automatizada por meio de chatbots, com integração de websocket para comunicação em tempo real com API's do WhatsApp e geração de respostas com ChatGPT.",
+    version="0.1",
+)
 
 # Base de dados simulada (em produção use uma base de dados real)
 conversation_db = {}  # Simula um banco de dados
@@ -16,9 +20,11 @@ async def check_conversation(cpf: str):
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    print("Conexão WebSocket estabelecida.")
     await websocket.accept()
     while True:
         data = await websocket.receive_text()  # Recebe mensagem via WebSocket
+        print(f"Mensagem recebida: {data}")
         user_message = process_message(data)  # Processa a mensagem do usuário
         user_number = get_user_number_from_message(data)  # Extrai o número do usuário
         
@@ -48,6 +54,7 @@ def process_message(data):
     """
     try:
         message_data = json.loads(data)  # Converte a string JSON em dicionário
+        print(f"Mensagem recebida decodificada do JSON: {message_data.get('message', '')}")
         return message_data.get("message", "")  # Retorna a mensagem do campo "message"
     except json.JSONDecodeError:
         return ""  # Caso a conversão falhe, retorna uma string vazia
