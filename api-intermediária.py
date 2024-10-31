@@ -1,53 +1,35 @@
-from fastapi import FastAPI, WebSocket
 import requests
 import json
 
-app = FastAPI(
-    title="API Gerenciadora de Entrevista",
-    description="API intermediária para gerenciar entrevistas com candidatos de forma humanizada e automatizada por meio de chatbots, com integração de websocket para comunicação em tempo real com API's do WhatsApp e geração de respostas com ChatGPT.",
-    version="0.1",
-)
-
-# Base de dados simulada (em produção use uma base de dados real)
-conversation_db = {}  # Simula um banco de dados
-
-@app.get("/check_conversation/{cpf}")
-async def check_conversation(cpf: str):
-    if cpf in conversation_db:
-        return {"message": "Usuário já registrado.", "conversation": conversation_db[cpf]}
+def process_message(self, message: WebhookRequest):
+    """
+    Process the incoming message from the webhook.
+    """
+    if message.metadata.phone not in conversation_db:
+        conversation_db[message.metadata.phone] = {
+            "nome": "Novo Usuário",
+            "tipo_entrevista": "não definido",
+            "flow": "inicio",
+            "history": []
+            }
+        welcome_message = f"Olá! Parece que é sua primeira vez aqui. Vamos começar sua entrevista para uma vaga?"
+        await websocket.send_text(welcome_message)
     else:
-        return {"message": "Nenhuma conversa encontrada para este CPF."}
+        flow = conversation_db[user_number]["flow"]
+        response = manage_chatbot_flow(flow, user_message, user_number)
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    print("Conexão WebSocket estabelecida.")
-    await websocket.accept()
-    while True:
-        data = await websocket.receive_text()  # Recebe mensagem via WebSocket
-        print(f"Mensagem recebida: {data}")
-        user_message = process_message(data)  # Processa a mensagem do usuário
-        user_number = get_user_number_from_message(data)  # Extrai o número do usuário
-        
-        # Verifica se o número do usuário já existe no "banco de dados"
-        if user_number not in conversation_db:
-            conversation_db[user_number] = {"nome": "Novo Usuário", "tipo_entrevista": "não definido", "flow": "inicio", "history": []}
-            welcome_message = f"Olá! Parece que é sua primeira vez aqui. Vamos começar sua entrevista para uma vaga?"
-            await websocket.send_text(welcome_message)
-        else:
-            flow = conversation_db[user_number]["flow"]
-            response = manage_chatbot_flow(flow, user_message, user_number)
+        # Envia mensagem para a API C (ChatGPT/Gemini) para gerar uma resposta se necessário
+        chatgpt_response = get_chatgpt_response(user_message)
+        conversation_db[user_number]["history"].append({"user": user_message, "bot": chatgpt_response})
 
-            # Envia mensagem para a API C (ChatGPT/Gemini) para gerar uma resposta se necessário
-            chatgpt_response = get_chatgpt_response(user_message)
-            conversation_db[user_number]["history"].append({"user": user_message, "bot": chatgpt_response})
+        # Atualiza o fluxo com base na resposta do usuário
+        conversation_db[user_number]["flow"] = update_flow(flow, user_message, user_number)
+        send_message_to_api_a(user_number, chatgpt_response)
 
-            # Atualiza o fluxo com base na resposta do usuário
-            conversation_db[user_number]["flow"] = update_flow(flow, user_message, user_number)
-            send_message_to_api_a(user_number, chatgpt_response)
+        await websocket.send_text(f"Resposta enviada para {user_number}: {chatgpt_response}")
 
-            await websocket.send_text(f"Resposta enviada para {user_number}: {chatgpt_response}")
 
-def process_message(data):
+def process_content_message(data):
     """
     Lógica para processar a mensagem recebida da API A.
     Converte os dados recebidos de JSON para dicionário e retorna a mensagem do usuário.
