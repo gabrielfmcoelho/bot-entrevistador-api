@@ -27,7 +27,10 @@ class AppSettings(BaseSettings):
     SECURITY_TOKEN: str = 'secret'
     DEFAULT_PROXY_URL: str = ''
     OPEN_API_URL: str = '/openapi.json'
-    OPENAI_TOKEN: str = ''
+    OPENAI_API_MODEL: str = ''
+    OPENAI_API_URL: str = ''
+    OPENAI_API_KEY: str = ''
+    WHATSAPP_API_URL: str = ''
 
     def __init__(self, **data):
         super().__init__(**data)

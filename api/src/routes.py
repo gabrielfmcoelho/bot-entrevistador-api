@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from .models import CandidateForm, InterviewForm
 from .controllers import get_chat_flow_controller
+from .logger import get_logger
 
 router = APIRouter(
     prefix="/api",
@@ -11,8 +12,11 @@ router = APIRouter(
 # PRINCIPAL ROTA, O RESTANTE PODE IMPLEMENTAR DEPOIS OU NEM IMPLEMENTAR
 @router.post("/webhook")
 async def webhook(request: Request, controller=Depends(get_chat_flow_controller)):
-    controller.process_webhook(request)
-    return controller.handle_flow()
+    with get_logger(task='wpp webhook') as logger:
+        logger.debug('Webhook request received')
+        webhook_data = await controller.process_webhook(request)
+        logger.debug(f'Webhook data processed: {webhook_data}')
+        return controller.handle_flow()
 
 # ROTAS PARA CRIAR SISTEMA DE ENTREVISTAS COM POSTAGEM VAGAS, CANDIDATOS E ACOMPANHAMENTO DE ENTREVISTAS
 @router.post("/candidates")

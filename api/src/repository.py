@@ -8,6 +8,15 @@ class CandidateRepository:
     def __init__(self):
         self.db_interface = get_database_interface()
 
+    def create_candidate(self, phone: str):
+        """Create a new candidate."""
+        with self.db_interface.get_session() as session:
+            new_candidate = Candidate(phone=phone, interview_status='WELCOME_1')
+            session.add(new_candidate)
+            session.commit()
+            session.refresh(new_candidate)
+            return new_candidate
+
     def get_candidate_by_phone(self, phone: str):
         """Retrieve a candidate by phone number."""
         with self.db_interface.get_session() as session:
@@ -65,7 +74,21 @@ class CandidateRepository:
                 session.commit()
                 return True
             return False
+        
+    def update_basic_info(self, candidate_id: int, full_name: str, age: int, cpf: str):
+        """Update the basic info of a candidate."""
+        with self.db_interface.get_session() as session:
+            candidate = session.query(Candidate).filter(Candidate.id == candidate_id).first()
+            if candidate:
+                candidate.full_name = full_name
+                candidate.age = age
+                candidate.cpf = cpf
+                candidate.updated_at = dt.now()
+                session.commit()
+                return True
+            return False
 
+candidate_repository = CandidateRepository()
 
 # JOB OPENING REPOSITORY
 

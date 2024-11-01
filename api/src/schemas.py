@@ -14,14 +14,14 @@ class Candidate(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     phone = Column(String(15), nullable=False)
-    cpf = Column(String(11), nullable=False, unique=True)
-    full_name = Column(String(100), nullable=False)
-    age = Column(Integer, nullable=False)
+    cpf = Column(String(11), nullable=True, unique=True)
+    full_name = Column(String(100), nullable=True)
+    age = Column(Integer, nullable=True)
     address = Column(String(255), nullable=True)
     education = Column(String(50), nullable=True)
     experience = Column(JSON, nullable=True) # List of past experiences in JSON format
     #Text ou JSON?
-    interview_status = Column(String(20), nullable=False)  # Interview status (flow moment)
+    interview_status = Column(String(20), nullable=True)  # Interview status (flow moment)
     skills = Column(JSON, nullable=True) #List of skills in JSON format
     #Text ou JSON?
     feedback = Column(String(255), nullable=True)  
@@ -33,3 +33,5 @@ class Candidate(Base):
 # Interview table
 
 # JobOpening table
+
+db_interface.create_tables()

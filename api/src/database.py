@@ -21,7 +21,7 @@ class DatabaseInterface:
         """
         if not hasattr(self, 'initialized'):
             if only_registry:
-                self.tables_registry = registry()
+                self.Base = declarative_base()
             else:
                 self.create_instance()
             self.initialized = True
@@ -40,10 +40,14 @@ class DatabaseInterface:
                     max_overflow=100,
                 )
                 logger.info('Database engine established successfully.')
-                self.metadata_obj = sa.MetaData(schema=settings.DB_NAME)
-                self.metadata_obj.reflect(bind=self.engine)
-                self.Base = declarative_base(metadata=self.metadata_obj)
+                if settings.DB_DRIVER == 'sqlite':
+                    self.Base = declarative_base()
+                else:
+                    self.metadata_obj = sa.MetaData(schema=settings.DB_NAME)
+                    self.metadata_obj.reflect(bind=self.engine)
+                    self.Base = declarative_base(metadata=self.metadata_obj)
                 self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine) # pylint: disable=invalid-name
+                self.create_tables()
                 self.test_connection()
             except Exception as e:
                 err_msg = 'Database engine creation failed'
@@ -99,7 +103,7 @@ class DatabaseInterface:
         with get_logger(task="database") as logger:
             try:
                 logger.debug('Creating tables...')
-                self.tables_registry.metadata.create_all(self.engine)
+                self.Base.metadata.create_all(bind=self.engine)
                 logger.info('Tables created successfully.')
             except Exception as e:
                 err_msg = 'Failed to create tables'
@@ -110,7 +114,7 @@ class DatabaseInterface:
         """
         Get all existing tables in the database
         """
-        return self.tables_registry.metadata.tables
+        return self.Base.metadata.tables
 
     def drop_tables(self):
         """
@@ -119,7 +123,7 @@ class DatabaseInterface:
         with get_logger(task="database") as logger:
             try:
                 logger.debug('Dropping tables...')
-                self.tables_registry.metadata.drop_all(self.engine)
+                self.Base.metadata.drop_all(bind=self.engine)
                 logger.info('Tables dropped successfully.')
             except Exception as e:
                 err_msg = 'Failed to drop tables'

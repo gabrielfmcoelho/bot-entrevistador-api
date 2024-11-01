@@ -28,32 +28,6 @@ def process_message(self, message: WebhookRequest):
 
         await websocket.send_text(f"Resposta enviada para {user_number}: {chatgpt_response}")
 
-
-def process_content_message(data):
-    """
-    Lógica para processar a mensagem recebida da API A.
-    Converte os dados recebidos de JSON para dicionário e retorna a mensagem do usuário.
-    """
-    try:
-        message_data = json.loads(data)  # Converte a string JSON em dicionário
-        print(f"Mensagem recebida decodificada do JSON: {message_data.get('message', '')}")
-        return message_data.get("message", "")  # Retorna a mensagem do campo "message"
-    except json.JSONDecodeError:
-        return ""  # Caso a conversão falhe, retorna uma string vazia
-
-
-def get_user_number_from_message(data):
-    """
-    Extrai o número do usuário da mensagem recebida da API A.
-    Converte os dados recebidos de JSON para dicionário e retorna o número do usuário.
-    """
-    try:
-        message_data = json.loads(data)  # Converte a string JSON em dicionário
-        return message_data.get("user_number", "")  # Retorna o número do campo "user_number"
-    except json.JSONDecodeError:
-        return ""  # Caso a conversão falhe, retorna uma string vazia
-
-
 def manage_chatbot_flow(flow, user_message, user_number):
     if flow == "inicio":
         return ask_for_interview_type(user_number)
@@ -153,27 +127,8 @@ def coder_intern_questions(user_message, user_number):
         return questions[len(history)]
     return "Obrigado! Essa foi a última pergunta da entrevista para Estagiário Coder."
 
-def get_chatgpt_response(user_message):
-    api_url = "https://api.openai.com/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer YOUR_CHATGPT_API_KEY",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "model": "gpt-3.5-turbo",
-        "messages": [{"role": "user", "content": user_message}]
-    }
-    response = requests.post(api_url, json=data, headers=headers)
-    return response.json().get("choices")[0]["message"]["content"]
-
 def update_flow(current_flow, user_message, user_number):
     history = conversation_db[user_number]["history"]
     if len(history) >= 12:
         return "finalizado"
     return current_flow
-
-def send_message_to_api_a(user_number, message):
-    api_a_url = f"http://api-a-url/send_message/{user_number}"
-    payload = {"message": message}
-    response = requests.post(api_a_url, json=payload)
-    return response.json()
